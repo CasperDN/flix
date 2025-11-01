@@ -122,7 +122,7 @@ object Specialization {
     *   - No type aliases
     *   - Equivalent types are uniquely represented (e.g. fields in records types are alphabetized)
     */
-  private case class StrictSubstitution(s: Substitution) {
+  protected[monomorph] case class StrictSubstitution(s: Substitution) {
 
     /**
       * Applies `this` substitution to the given type `tpe`, returning a normalized type.
@@ -179,7 +179,7 @@ object Specialization {
     *
     * This class is thread-safe.
     */
-  private class Context {
+  protected[monomorph] class Context {
 
     /**
       * A queue of pending (fresh symbol, function definition, and substitution)-triples.
@@ -447,7 +447,7 @@ object Specialization {
     *
     * Replaces every local variable symbol with a fresh local variable symbol.
     */
-  private def specializeExp(exp0: LoweredAst.Expr, env0: Map[Symbol.VarSym, Symbol.VarSym], subst: StrictSubstitution)(implicit ctx: Context, instances: Map[(Symbol.TraitSym, TypeConstructor), Instance], root: LoweredAst.Root, flix: Flix): MonoAst.Expr = exp0 match {
+  protected[monomorph] def specializeExp(exp0: LoweredAst.Expr, env0: Map[Symbol.VarSym, Symbol.VarSym], subst: StrictSubstitution)(implicit ctx: Context, instances: Map[(Symbol.TraitSym, TypeConstructor), Instance], root: LoweredAst.Root, flix: Flix): MonoAst.Expr = exp0 match {
     case LoweredAst.Expr.Var(sym, tpe, loc) =>
       MonoAst.Expr.Var(env0(sym), subst(tpe), loc)
 
@@ -636,8 +636,8 @@ object Specialization {
       val methods = methods0.map(specializeJvmMethod(_, env0, subst))
       MonoAst.Expr.NewObject(name, clazz, subst(tpe), subst(eff), methods, loc)
 
-    case LoweredAst.Expr.NewChannel(_, _, _, loc) =>
-      throw InternalCompilerException("not implemented yet", loc)
+    case LoweredAst.Expr.NewChannel(exp, tpe, eff, loc) =>
+      Lowering.visitNewChannel(exp, tpe, eff, loc, env0, subst)
 
     case LoweredAst.Expr.GetChannel(_, _, _, loc) =>
       throw InternalCompilerException("not implemented yet", loc)
@@ -794,7 +794,7 @@ object Specialization {
     *
     * N.B.: `tpe` must be normalized.
     */
-  private def specializeDefnSym(sym: Symbol.DefnSym, tpe: Type)(implicit ctx: Context, root: LoweredAst.Root, flix: Flix): Symbol.DefnSym = {
+  protected[monomorph] def specializeDefnSym(sym: Symbol.DefnSym, tpe: Type)(implicit ctx: Context, root: LoweredAst.Root, flix: Flix): Symbol.DefnSym = {
     val defn = root.defs(sym)
 
     if (defn.spec.tparams.isEmpty) {
